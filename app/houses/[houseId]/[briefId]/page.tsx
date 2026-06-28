@@ -5,12 +5,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { format, formatDistanceToNow, isPast } from 'date-fns'
 import { Modal } from '@/components/Modal'
-import dynamic from 'next/dynamic'
-
-const RichEditor = dynamic(
-  () => import('@/components/RichEditor').then(m => m.RichEditor),
-  { ssr: false, loading: () => <div className="neu-inset-sm" style={{ minHeight: '7rem', borderRadius: '10px' }} /> }
-)
+import { RichEditor } from '@/components/RichEditor'
 
 interface MOM {
   id: string
@@ -46,6 +41,8 @@ type ModalMode =
   | { type: 'raise-flag'; log: LogEntry }
   | { type: 'mom'; log: LogEntry }
 
+type LogFilter = 'all' | 'logs' | 'flags' | 'moms'
+
 export default function BriefPage() {
   const { houseId, briefId } = useParams<{ houseId: string; briefId: string }>()
 
@@ -54,6 +51,7 @@ export default function BriefPage() {
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState<ModalMode | null>(null)
   const [saving, setSaving] = useState(false)
+  const [filter, setFilter] = useState<LogFilter>('all')
 
   const [logForm, setLogForm] = useState({ title: '' })
   const [flagForm, setFlagForm] = useState({ title: '', description: '', deadline: '' })
@@ -213,10 +211,20 @@ export default function BriefPage() {
     )
   }
 
-  const logCount = logs.filter(l => !l.isFlag).length
+  const logCount  = logs.filter(l => !l.isFlag).length
   const flagCount = logs.filter(l => l.isFlag).length
   const doneCount = logs.filter(l => l.isFlag && l.completed).length
-  const momCount = logs.filter(l => l.mom).length
+  const momCount  = logs.filter(l => !!l.mom).length
+
+  // Show filter tabs only when there's more than one type of entry
+  const showFilters = logs.length > 0 && (flagCount > 0 || momCount > 0)
+
+  const filteredLogs = logs.filter(l => {
+    if (filter === 'logs')  return !l.isFlag
+    if (filter === 'flags') return l.isFlag
+    if (filter === 'moms')  return !!l.mom
+    return true
+  })
 
   return (
     <div className="max-w-3xl">
@@ -234,7 +242,7 @@ export default function BriefPage() {
       </div>
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-8 gap-4">
+      <div className="flex items-start justify-between mb-6 gap-4">
         <div>
           <h1 className="page-title">{brief.name}</h1>
           {brief.description && (
@@ -251,6 +259,47 @@ export default function BriefPage() {
         </div>
       </div>
 
+      {/* Filter tabs — only when there's something to filter */}
+      {showFilters && (
+        <div className="flex gap-2 mb-5 flex-wrap">
+          {([
+            { key: 'all',   label: 'All',   count: logs.length },
+            { key: 'logs',  label: 'Logs',  count: logCount },
+            { key: 'flags', label: 'Flags', count: flagCount },
+            { key: 'moms',  label: 'MOMs',  count: momCount },
+          ] as { key: LogFilter; label: string; count: number }[])
+            .filter(t => t.key === 'all' || t.count > 0)
+            .map(t => (
+              <button
+                key={t.key}
+                className="neu-btn neu-btn-sm flex items-center gap-1.5"
+                style={{
+                  color: filter === t.key ? 'var(--accent)' : 'var(--text-3)',
+                  boxShadow: filter === t.key
+                    ? 'inset 3px 3px 7px var(--shadow-d), inset -3px -3px 7px var(--shadow-l)'
+                    : '3px 3px 7px var(--shadow-d), -3px -3px 7px var(--shadow-l)',
+                  fontWeight: filter === t.key ? 600 : 450,
+                }}
+                onClick={() => setFilter(t.key)}
+              >
+                {t.label}
+                <span
+                  className="text-xs px-1.5 py-0.5 rounded-full"
+                  style={{
+                    background: filter === t.key ? 'var(--accent-bg)' : 'transparent',
+                    color: filter === t.key ? 'var(--accent)' : 'var(--text-3)',
+                    fontWeight: 600,
+                    minWidth: '1.25rem',
+                    textAlign: 'center',
+                  }}
+                >
+                  {t.count}
+                </span>
+              </button>
+            ))}
+        </div>
+      )}
+
       {/* List */}
       {logs.length === 0 ? (
         <div className="neu p-14 text-center">
@@ -264,9 +313,15 @@ export default function BriefPage() {
             <button className="neu-btn" style={{ color: 'var(--accent)' }} onClick={() => openModal({ type: 'add-flag' })}>🚩 Add Flag</button>
           </div>
         </div>
+      ) : filteredLogs.length === 0 ? (
+        <div className="neu-md p-10 text-center">
+          <p className="text-sm" style={{ color: 'var(--text-3)' }}>
+            No {filter === 'moms' ? 'MOMs' : filter} in this brief yet.
+          </p>
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {logs.map(entry => (
+          {filteredLogs.map(entry => (
             <LogItem
               key={entry.id}
               entry={entry}
