@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+model House {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  briefs      Brief[]
+}
+
+model Brief {
+  id          String   @id @default(cuid())
+  houseId     String
+  house       House    @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  logs        Log[]
+}
+
+// Log is the base entry. When raised as a flag, isFlag flips true
+// and description + deadline are filled in. The log IS the flag.
+// A log can also have one MOM attached — independent of flag status.
+model Log {
+  id          String    @id @default(cuid())
+  briefId     String
+  brief       Brief     @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  title       String
+  postedAt    DateTime  @default(now())
+  isFlag      Boolean   @default(false)
+  description String?
+  deadline    DateTime?
+  completed   Boolean   @default(false)
+  mom         MOM?
+}
+
+// Minutes of Meeting — one per log, carries meeting context
+model MOM {
+  id           String   @id @default(cuid())
+  logId        String   @unique
+  log          Log      @relation(fields: [logId], references: [id], onDelete: Cascade)
+  title        String
+  date         DateTime
+  stakeholders String   // comma-separated names
+  notes        String   @db.Text  // rich text HTML
+  decisions    String   @db.Text  // rich text HTML
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Completely standalone tasks — not tied to any House or Brief
+model OpenFlag {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  deadline    DateTime?
+  completed   Boolean   @default(false)
+  priority    Priority  @default(MID)
+  createdAt   DateTime  @default(now())
+}
+
+enum Priority {
+  LOW
+  MID
+  HIGH
+}
