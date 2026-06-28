@@ -5,7 +5,12 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { format, formatDistanceToNow, isPast } from 'date-fns'
 import { Modal } from '@/components/Modal'
-import { RichEditor } from '@/components/RichEditor'
+import dynamic from 'next/dynamic'
+
+const RichEditor = dynamic(
+  () => import('@/components/RichEditor').then(m => m.RichEditor),
+  { ssr: false, loading: () => <div className="neu-inset-sm" style={{ minHeight: '7rem', borderRadius: '10px' }} /> }
+)
 
 interface MOM {
   id: string
