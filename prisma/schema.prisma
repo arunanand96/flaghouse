@@ -8,11 +8,12 @@ datasource db {
 }
 
 model House {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
   description String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   briefs      Brief[]
+  kbEntries   KBEntry[]
 }
 
 model Brief {
@@ -70,4 +71,15 @@ enum Priority {
   LOW
   MID
   HIGH
+}
+
+// Living reference docs per house — updated as understanding deepens
+model KBEntry {
+  id        String   @id @default(cuid())
+  houseId   String
+  house     House    @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  title     String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
