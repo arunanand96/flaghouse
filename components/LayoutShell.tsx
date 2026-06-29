@@ -24,9 +24,8 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar — fixed overlay on mobile, static on desktop */}
       <div
-        className="fixed inset-y-0 left-0 z-50 transition-transform duration-300 md:relative md:translate-x-0"
-        style={{ transform: open ? 'translateX(0)' : undefined }}
-      >
+  className={`fixed inset-y-0 left-0 z-50 transition-transform duration-300 md:relative md:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}`}
+>
         <Sidebar onClose={() => setOpen(false)} />
       </div>
 
