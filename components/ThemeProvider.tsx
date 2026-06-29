@@ -18,35 +18,26 @@ const ThemeContext = createContext<ThemeContextType>({
   resetToAuto: () => {},
 })
 
-export function useTheme() {
-  return useContext(ThemeContext)
-}
+export function useTheme() { return useContext(ThemeContext) }
 
 function isNightNow(): boolean {
   const d = new Date()
   const mins = d.getHours() * 60 + d.getMinutes()
-  // Dark from 18:30 (6:30pm) → 6:30am (390 mins)
   return mins >= 18 * 60 + 30 || mins < 6 * 60 + 30
 }
 
 function applyClass(dark: boolean) {
-  if (dark) {
-    document.documentElement.classList.add('dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-  }
+  if (dark) document.documentElement.classList.add('dark')
+  else       document.documentElement.classList.remove('dark')
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light')
   const [isAuto, setIsAuto] = useState(true)
-  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
     const manual = localStorage.getItem('fh-theme-manual') === 'true'
-    const saved = localStorage.getItem('fh-theme') as Theme | null
-
+    const saved  = localStorage.getItem('fh-theme') as Theme | null
     if (manual && saved) {
       setIsAuto(false)
       setTheme(saved)
@@ -58,7 +49,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Tick every 60s to check if we crossed 18:30 or 06:30
   useEffect(() => {
     if (!isAuto) return
     const id = setInterval(() => {
@@ -87,10 +77,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyClass(dark)
   }, [])
 
-  // Avoid flash: render children immediately, theme is applied synchronously in useEffect
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, isAuto, resetToAuto }}>
-      {/* Suppress hydration mismatch on the html class */}
       {children}
     </ThemeContext.Provider>
   )
